@@ -1,11 +1,11 @@
-import inquirer from 'inquirer';
+import * as readline from 'readline';
 
 interface Car {
   id: number;
   manufacturer: string;
   model: string;
   year: number;
-  condition: 'new' | 'used';
+  condition: 'новая' | 'б/у';
   price: number;
 }
 
@@ -17,7 +17,7 @@ class CarCatalog {
     manufacturer: string,
     model: string,
     year: number,
-    condition: 'new' | 'used',
+    condition: 'новая' | 'б/у',
     price: number
   ): Car {
     const newCar: Car = {
@@ -63,119 +63,120 @@ class CarCatalog {
 }
 
 const catalog = new CarCatalog();
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
-async function showMainMenu(): Promise<void> {
-  const { action } = await inquirer.prompt([
-    {
-      type: 'list',
-      name: 'action',
-      message: '🚗 Каталог автомобилей - Выберите действие:',
-      choices: [
-        '📝 Добавить машину',
-        '📋 Показать все машины',
-        '🔍 Найти машину по ID',
-        '✏️ Обновить машину',
-        '🗑️ Удалить машину',
-        '❌ Выход'
-      ]
-    }
-  ]);
-
-  await handleAction(action);
+function askQuestion(question: string): Promise<string> {
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      resolve(answer);
+    });
+  });
 }
 
-async function handleAction(action: string): Promise<void> {
-  switch (action) {
-    case '📝 Добавить машину':
+async function showMainMenu(): Promise<void> {
+  console.log('\n🚗 Каталог автомобилей');
+  console.log('1. 📝 Добавить машину');
+  console.log('2. 📋 Показать все машины');
+  console.log('3. 🔍 Найти машину по ID');
+  console.log('4. ✏️ Обновить машину');
+  console.log('5. 🗑️ Удалить машину');
+  console.log('6. ❌ Выход\n');
+
+  const action = await askQuestion('Выберите действие (введите цифру 1-6): ');
+
+  switch (action.trim()) {
+    case '1':
       await addCar();
       break;
-    case '📋 Показать все машины':
+    case '2':
       await showAllCars();
       break;
-    case '🔍 Найти машину по ID':
+    case '3':
       await findCarById();
       break;
-    case '✏️ Обновить машину':
+    case '4':
       await updateCar();
       break;
-    case '🗑️ Удалить машину':
+    case '5':
       await deleteCar();
       break;
-    case '❌ Выход':
+    case '6':
       console.log('\n👋 До свидания!');
+      rl.close();
       process.exit(0);
       break;
+    default:
+      console.log('\n❌ Неверный ввод! Введите цифру от 1 до 6\n');
+      await showMainMenu();
   }
 }
 
 async function addCar(): Promise<void> {
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'manufacturer',
-      message: 'Производитель:',
-      validate: (input: string) => input.trim() !== '' || 'Введите производителя'
-    },
-    {
-      type: 'input',
-      name: 'model',
-      message: 'Модель:',
-      validate: (input: string) => input.trim() !== '' || 'Введите модель'
-    },
-    {
-      type: 'number',
-      name: 'year',
-      message: 'Год выпуска:',
-      validate: (input: number) => {
-        if (isNaN(input)) return 'Введите число';
-        if (input < 1886 || input > new Date().getFullYear() + 1) return 'Некорректный год';
-        return true;
-      }
-    },
-    {
-      type: 'list',
-      name: 'condition',
-      message: 'Состояние:',
-      choices: ['new', 'used']
-    },
-    {
-      type: 'number',
-      name: 'price',
-      message: 'Цена ($):',
-      validate: (input: number) => {
-        if (isNaN(input)) return 'Введите число';
-        if (input <= 0) return 'Цена должна быть больше 0';
-        return true;
-      }
+  console.log('\n📝 Добавление новой машины\n');
+
+  const manufacturer = await askQuestion('Производитель: ');
+  if (!manufacturer.trim()) {
+    console.log('❌ Производитель обязателен!\n');
+    await showMainMenu();
+    return;
+  }
+
+  const model = await askQuestion('Модель: ');
+  if (!model.trim()) {
+    console.log('❌ Модель обязательна!\n');
+    await showMainMenu();
+    return;
+  }
+
+  const yearStr = await askQuestion('Год выпуска: ');
+  const year = parseInt(yearStr);
+  if (isNaN(year) || year < 1886 || year > new Date().getFullYear() + 1) {
+    console.log('❌ Некорректный год!\n');
+    await showMainMenu();
+    return;
+  }
+
+  let conditionInput = '';
+  while (conditionInput !== 'новая' && conditionInput !== 'б/у') {
+    conditionInput = await askQuestion('Состояние (новая/б/у): ');
+    conditionInput = conditionInput.trim().toLowerCase();
+    if (conditionInput !== 'новая' && conditionInput !== 'б/у') {
+      console.log('❌ Введите "новая" или "б/у"');
     }
-  ]);
+  }
+  const condition = conditionInput as 'новая' | 'б/у';
 
-  const car = catalog.createCar(
-    answers.manufacturer,
-    answers.model,
-    answers.year,
-    answers.condition,
-    answers.price
-  );
+  const priceStr = await askQuestion('Цена (₽): ');
+  const price = parseFloat(priceStr);
+  if (isNaN(price) || price <= 0) {
+    console.log('❌ Некорректная цена!\n');
+    await showMainMenu();
+    return;
+  }
 
+  const car = catalog.createCar(manufacturer, model, year, condition, price);
   console.log(`\n✅ Машина добавлена! ID: ${car.id}\n`);
+  
   await showMainMenu();
 }
 
 async function showAllCars(): Promise<void> {
+  console.log('\n📋 Список всех машин:\n');
   const cars = catalog.readAllCars();
   
   if (cars.length === 0) {
-    console.log('\n📭 Каталог пуст\n');
+    console.log('📭 Каталог пуст\n');
   } else {
-    console.log('\n📋 Список всех машин:');
     cars.forEach(car => {
-      console.log(`\n  ID: ${car.id}`);
+      console.log(`  ID: ${car.id}`);
       console.log(`  Производитель: ${car.manufacturer}`);
       console.log(`  Модель: ${car.model}`);
       console.log(`  Год: ${car.year}`);
-      console.log(`  Состояние: ${car.condition === 'new' ? 'Новая' : 'Б/У'}`);
-      console.log(`  Цена: $${car.price}`);
+      console.log(`  Состояние: ${car.condition}`);
+      console.log(`  Цена: ${car.price.toLocaleString('ru-RU')} ₽`);
       console.log('  ---');
     });
     console.log('');
@@ -185,18 +186,16 @@ async function showAllCars(): Promise<void> {
 }
 
 async function findCarById(): Promise<void> {
-  const { id } = await inquirer.prompt([
-    {
-      type: 'number',
-      name: 'id',
-      message: 'Введите ID машины:',
-      validate: (input: number) => {
-        if (isNaN(input)) return 'Введите число';
-        if (input <= 0) return 'ID должен быть больше 0';
-        return true;
-      }
-    }
-  ]);
+  console.log('\n🔍 Поиск машины по ID\n');
+  
+  const idStr = await askQuestion('Введите ID машины: ');
+  const id = parseInt(idStr);
+  
+  if (isNaN(id) || id <= 0) {
+    console.log('❌ Некорректный ID!\n');
+    await showMainMenu();
+    return;
+  }
 
   const car = catalog.readCarById(id);
   
@@ -206,8 +205,8 @@ async function findCarById(): Promise<void> {
     console.log(`  Производитель: ${car.manufacturer}`);
     console.log(`  Модель: ${car.model}`);
     console.log(`  Год: ${car.year}`);
-    console.log(`  Состояние: ${car.condition === 'new' ? 'Новая' : 'Б/У'}`);
-    console.log(`  Цена: $${car.price}\n`);
+    console.log(`  Состояние: ${car.condition}`);
+    console.log(`  Цена: ${car.price.toLocaleString('ru-RU')} ₽\n`);
   } else {
     console.log(`\n❌ Машина с ID ${id} не найдена\n`);
   }
@@ -216,18 +215,16 @@ async function findCarById(): Promise<void> {
 }
 
 async function updateCar(): Promise<void> {
-  const { id } = await inquirer.prompt([
-    {
-      type: 'number',
-      name: 'id',
-      message: 'Введите ID машины для обновления:',
-      validate: (input: number) => {
-        if (isNaN(input)) return 'Введите число';
-        if (input <= 0) return 'ID должен быть больше 0';
-        return true;
-      }
-    }
-  ]);
+  console.log('\n✏️ Обновление машины\n');
+  
+  const idStr = await askQuestion('Введите ID машины для обновления: ');
+  const id = parseInt(idStr);
+  
+  if (isNaN(id) || id <= 0) {
+    console.log('❌ Некорректный ID!\n');
+    await showMainMenu();
+    return;
+  }
 
   const car = catalog.readCarById(id);
   
@@ -239,73 +236,56 @@ async function updateCar(): Promise<void> {
 
   console.log(`\n📝 Текущие данные: ${car.manufacturer} ${car.model}`);
   
-  const answers = await inquirer.prompt([
-    {
-      type: 'input',
-      name: 'manufacturer',
-      message: 'Производитель:',
-      default: car.manufacturer
-    },
-    {
-      type: 'input',
-      name: 'model',
-      message: 'Модель:',
-      default: car.model
-    },
-    {
-      type: 'number',
-      name: 'year',
-      message: 'Год выпуска:',
-      default: car.year
-    },
-    {
-      type: 'list',
-      name: 'condition',
-      message: 'Состояние:',
-      choices: ['new', 'used'],
-      default: car.condition
-    },
-    {
-      type: 'number',
-      name: 'price',
-      message: 'Цена ($):',
-      default: car.price
+  const manufacturer = await askQuestion(`Производитель (${car.manufacturer}): `);
+  const model = await askQuestion(`Модель (${car.model}): `);
+  
+  const yearStr = await askQuestion(`Год выпуска (${car.year}): `);
+  const year = yearStr.trim() ? parseInt(yearStr) : car.year;
+  
+  let conditionInput = '';
+  while (conditionInput !== 'новая' && conditionInput !== 'б/у' && conditionInput !== '') {
+    conditionInput = await askQuestion(`Состояние (${car.condition}): `);
+    conditionInput = conditionInput.trim().toLowerCase();
+    if (conditionInput && conditionInput !== 'новая' && conditionInput !== 'б/у') {
+      console.log('❌ Введите "новая" или "б/у"');
     }
-  ]);
+  }
+  const condition = (conditionInput || car.condition) as 'новая' | 'б/у';
+  
+  const priceStr = await askQuestion(`Цена (${car.price} ₽): `);
+  const price = priceStr.trim() ? parseFloat(priceStr) : car.price;
 
-  const updatedCar = catalog.updateCar(id, {
-    manufacturer: answers.manufacturer,
-    model: answers.model,
-    year: answers.year,
-    condition: answers.condition,
-    price: answers.price
+  const updatedCar = catalog.updateCar(car.id, {
+    manufacturer: manufacturer.trim() || car.manufacturer,
+    model: model.trim() || car.model,
+    year: year,
+    condition: condition,
+    price: price
   });
 
   if (updatedCar) {
-    console.log(`\n✅ Машина с ID ${id} обновлена!\n`);
+    console.log(`\n✅ Машина с ID ${updatedCar.id} обновлена!\n`);
   }
   
   await showMainMenu();
 }
 
 async function deleteCar(): Promise<void> {
-  const { id } = await inquirer.prompt([
-    {
-      type: 'number',
-      name: 'id',
-      message: 'Введите ID машины для удаления:',
-      validate: (input: number) => {
-        if (isNaN(input)) return 'Введите число';
-        if (input <= 0) return 'ID должен быть больше 0';
-        return true;
-      }
-    }
-  ]);
+  console.log('\n🗑️ Удаление машины\n');
+  
+  const idStr = await askQuestion('Введите ID машины для удаления: ');
+  const id = parseInt(idStr);
+  
+  if (isNaN(id) || id <= 0) {
+    console.log('❌ Некорректный ID!\n');
+    await showMainMenu();
+    return;
+  }
 
   const success = catalog.deleteCar(id);
   
   if (success) {
-    console.log(`\n✅ Машина с ID ${id} удалена!\n`);
+    console.log(`\n✅ Машина удалена!\n`);
   } else {
     console.log(`\n❌ Машина с ID ${id} не найдена\n`);
   }
