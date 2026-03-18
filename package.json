@@ -9,9 +9,9 @@
     "dev": "ts-node src/index.ts"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.9",
+    "@types/inquirer": "^8.2.4",
     "@types/node": "^20.0.0",
-    "inquirer": "^13.3.2",
+    "inquirer": "^8.2.4",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"
   }

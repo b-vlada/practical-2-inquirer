@@ -1,3 +1,4 @@
+import inquirer from 'inquirer';
 import * as readline from 'readline';
 
 interface Car {
@@ -63,6 +64,7 @@ class CarCatalog {
 }
 
 const catalog = new CarCatalog();
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -141,7 +143,7 @@ async function addCar(): Promise<void> {
 
   let conditionInput = '';
   while (conditionInput !== 'новая' && conditionInput !== 'б/у') {
-    conditionInput = await askQuestion('Состояние (новая/б/у): ');
+    conditionInput = await askQuestion('Состояние (введите "новая" или "б/у"): ');
     conditionInput = conditionInput.trim().toLowerCase();
     if (conditionInput !== 'новая' && conditionInput !== 'б/у') {
       console.log('❌ Введите "новая" или "б/у"');
